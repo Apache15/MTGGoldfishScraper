@@ -4,9 +4,9 @@ const readline = require('readline');
 //OPTIONS
 
 // # Of decklists to get, starting from 1st place
-const topNDecklists = 8;
+const topNDecklists = 32;
 // output dir
-var dir = "C:/Users/Blake/Desktop/MTG HISTORY ARCHIVE/2019";
+var dir = "C:/Users/Blake/Desktop/TESTOUTPUTGOOBER";
 
 var manualTournamentResults = (process.argv[2] === "true");
 
@@ -49,8 +49,8 @@ const getOrdinal = (n) => {
   const fs = require('fs');
   // Open first N decklists to get player name and decklist
   // MTGGoldfish creates their tables in a weird ass way, harder to get the data from main page, just rip the deck ID and open pages to scrape data that way.
-  if (!fs.existsSync(`${dir}/${tournament}`)) {
-    fs.mkdirSync(`${dir}/${tournament}`);
+  if (!fs.existsSync(`${dir}`)) {
+    fs.mkdirSync(`${dir}`);
   }
 
   const text = await page.evaluate(() => Array.from(document.querySelectorAll('.tournament-decklist'), element => element.getAttribute("data-deckid")));
@@ -58,19 +58,46 @@ const getOrdinal = (n) => {
     await page.goto(`https://www.mtggoldfish.com/deck/${text[i]}#paper`, { waitUntil: 'load' });
     var title = (await page.$eval(".title", (el) => el.innerText)).split(/\sby\s/);
     var deckName = title[0];
-    var authorName = title[1];
+    //var authorName = title[1];
     await page.goto(`https://www.mtggoldfish.com/deck/arena_download/${text[i]}#paper`, { waitUntil: 'load' });
     var deckList = await page.$eval("body > main > div > textarea", span => span.innerHTML);
-    var ordInput = getOrdinal(i+1);
-    if (manualTournamentResults) {
+    //var ordInput = getOrdinal(i+1);
+    /*if (manualTournamentResults) {
       ordInput = await readLine(`Placement for player ${authorName} : `);
+    }*/
+    const creatureDict = ["Phlage, Titan of Fire's Fury","Ragavan, Nimble Pilferer","Guide of Souls","Ocelot Pride","Ajani, Nacatl Pariah","Seasoned Pyromancer","Obsidian Charmaw","Voice of Victory","Orcish Bowmasters","Haywire Mite","Tamiyo, Inquisitive Student","Harbinger of the Seas","Monastery Swiftspear","Emrakul, the Promised End","Dragon's Rage Channeler","Soulless Jailer","Sowing Mycospawn","Psychic Frog","Subtlety","Devourer of Destiny","Solitude","Magebane Lizard","Slickshot Show-Off","Murktide Regent","World Breaker","Walking Ballista","Emperor of Bones","Witch Enchanter","Emry, Lurker of the Loch","Phelia, Exuberant Shepherd","Writhing Chrysalis","Sire of Seven Deaths","Ral, Monsoon Mage","Clarion Conqueror","Glaring Fleshraker","Aftermath Analyst","Arboreal Grazer","Primeval Titan","Thought-Knot Seer","Boggart Trawler","Endurance","Six","Overlord of the Balemurk","White Orchid Phantom","Cultivator Colossus","Kappa Cannoneer","Scion of Draco","Thundertrap Trainer","Fallaji Archaeologist","Drannith Magistrate","Cori-Steel Cutter","Ruby Medallion","Goblin Charbelcher","Leyline of the Guildpact","Leyline Binding","Jeskai Ascendancy","Living End","Basking Broodscale","Yawgmoth, Thran Physician","Hollow One","Detective's Phoenix","Goryo's Vengeance","Teferi, Hero of Dominaria","Through the Breach","Kozilek's Command","Urza's Tower","Urza's Power Plant","Urza's Mine","Ugin's Labyrinth","Urza's Saga","Lightning Bolt","Galvanic Discharge","Prismatic Ending","Spell Snare","Counterspell","Wrath of the Skies","Force of Negation","Boltwave","Ruin Crab","Hedron Crab","Fatal Push","Thoughtseize"];
+    //const placement = getOrdinal(parseInt(ordInput, 10));
+    var decklistAsArray = deckList.split("\n");
+
+    var deckListDict = [];
+    var importantCards = [];
+
+    if(deckListDict.findIndex(x=>x == deckName) == -1){
+      deckListDict.push(deckName);
     }
-    const placement = getOrdinal(parseInt(ordInput, 10));
-    fs.writeFile(`${dir}/${tournament}/${placement}-${authorName} -- ${deckName}.txt`, deckList, (err) => {
+
+    for (let index = 0; index < creatureDict.length; index++) {
+      importantCards[index] = 0;
+    }
+
+    for (let i = 1; i < decklistAsArray.length; i++) {
+      const line = decklistAsArray[i];
+      if(line == "Sideboard"){
+        continue;
+      }
+      // format is always `cardCount cardName` in goldfish
+      var cardName = line.slice(2);
+      var cardCount = line.split(" ")[0];
+      importantCards[creatureDict.findIndex(x => x == cardName)] = cardCount;
+    }
+
+    const decklineString = [deckListDict.find(x => x == deckName)].concat(importantCards).join(",") + "\n";
+
+    fs.appendFile(`output.txt`, decklineString, (err) => {
       if (err) {
         console.error('An error occurred:', err);
       } else {
-        console.log('File created successfully!');
+        console.log('Appended successfully!');
       }
 
     });
